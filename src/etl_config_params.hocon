@@ -1,0 +1,30 @@
+app: {
+  kafka: {
+    broker: "localhost:9092"
+    schemaRegURL: "http://localhost:8081"
+    autoResetOffest: "latest"
+    groupID: "stream001"
+  }
+  spark: {
+    batchDur: 15
+  }
+  kudu: {
+    master:  "localhost:7051"
+  }
+  streams: [
+    {
+      srcTopic: "src"
+      destTable: "kudutab"
+      transform: """
+      """
+      filter: "1=1"
+    }
+    {
+      srcTopic: "src2"
+      destTable: "kudutab2"
+      transform: """
+      """
+      filter: "1=1"
+    }
+  ]
+}
