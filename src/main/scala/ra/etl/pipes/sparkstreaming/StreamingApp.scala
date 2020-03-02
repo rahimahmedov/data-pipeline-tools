@@ -11,7 +11,8 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 import org.apache.spark.streaming.kafka010.KafkaUtils
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 
-import ra.etl.pipes.utils.AppContext
+import ra.etl.pipes.utils.streams.SparkAppContext
+import ra.etl.pipes.utils.cli._
 
 import scala.util.{Failure, Success, Try}
 
@@ -19,16 +20,16 @@ object StreamingApp extends App {
 
   @transient lazy val logger = LogManager.getLogger(getClass)
 
-  val configFilePath = args(0)
+  val configFilePath = args.getOrElse("--configFile", "")
 
   // Spark Streaming related config
-  val sparkConf = new SparkConf().setAppName("Spark_Streaming_Generic_From_Kafka_To_Kudu")
+  val sparkConf = new SparkConf().setAppName(args.getOrElse("--appName",  "Spark_Streaming_Generic_From_Kafka_To_Kudu"))
   val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
   val sparkContext = sparkSession.sparkContext
   val sqlContext = sparkSession.sqlContext
 
   // initialize application and streaming context:
-  val appContext = AppContext(sparkContext, configFilePath)
+  val appContext = SparkAppContext(sparkContext, configFilePath)
   val streamingContext = new StreamingContext(sparkContext, appContext.batchDur)
 
   // initialize kafka streaming:
@@ -40,37 +41,30 @@ object StreamingApp extends App {
   kafkaStream.foreachRDD(rdd => {
 
     val rddCount = rdd.count()
-    val repartCnt = 500000
-    val partCnt = 20
+    val repartCnt = appContext.repartCnt
+    val partCnt = appContext.partCnt
 
-
-    // repartition RDD is necessery:
+    // repartition RDD is necessary :
     val insertRDD = { if(rddCount/partCnt > repartCnt) rdd.repartition({rddCount/repartCnt}.asInstanceOf[Int]) else rdd }
 
     //foreach topic separate transformation and destination tables:
     appContext.kafkaTopics.foreach( kafkaTopic => {
-
       val transform = appContext.transformPart.get(kafkaTopic).get
-
       val df = appContext.toDataFrame(sqlContext, insertRDD, kafkaTopic)
       appContext.createTempView(df, kafkaTopic)
-
       val targetDf = sqlContext.sql(transform.transformSQL)
-
       Try(appContext.kuduContext.upsertRows(targetDf,transform.destinationTable))
       match {
         case Success(_) =>
         case Failure(e) => {
           logger.warn(s"Could not insert records -  ${targetDf.count()} recs! Exception:\n\t\t${e.getMessage}")
-          targetDf.write.format("avro").save(s"hdfs://nameservice1/user/dloper/tmp/kudurejects/${kafkaTopic}-${Calendar.getInstance().getTime.getTime}")
+          targetDf.write.format("avro")
+            .save(s"${appContext.appLogdir}/${kafkaTopic}-${Calendar.getInstance().getTime.getTime}")
         }
       }
-
     })
 
-
   })
-
 
   streamingContext.start()
   streamingContext.awaitTermination()

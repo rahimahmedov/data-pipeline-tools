@@ -1,11 +1,11 @@
 package ra.etl.pipes.utils.kafka
 
 import java.io.File
+import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import ra.etl.pipes.utils.cli._
-
 import com.typesafe.config.ConfigFactory
 import io.confluent.kafka.serializers.{AbstractKafkaAvroSerDeConfig, KafkaAvroSerializer}
 import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
@@ -14,7 +14,6 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.apache.kafka.streams.{KafkaStreams, StreamsConfig}
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.scala.{Serdes, StreamsBuilder}
-
 
 import scala.collection.JavaConverters._
 
@@ -32,7 +31,7 @@ object ReplicateTopic  extends App {
   private final val _FILTER_VALUES  = "app.filter.values"
 
   /*
-    ReplicateTopic  --configFile hoconFile.hocon --logLevel <INFO|WARN|DEBUG> --logFile <logfile.log>
+    ReplicateTopic  --configFile hoconFile.hocon
    */
 
 
@@ -67,7 +66,7 @@ object ReplicateTopic  extends App {
   inputStream
     .filter( (_,v) => filerValues.contains(String.valueOf(v.get(filterField))) )
     .foreach( (_, v) => {
-      println("consuming...")
+      println(s"Transferring $filterField = ${String.valueOf(v.get(filterField))}")
       val record = new ProducerRecord[AnyRef, AnyRef](outTopic, v)
       producerOUT.send(record)
     })
@@ -82,7 +81,7 @@ object ReplicateTopic  extends App {
   stream.start()
 
   sys.ShutdownHookThread {
-    stream.close(10, TimeUnit.SECONDS)
+    stream.close(Duration.ofSeconds(10))
   }
 
 

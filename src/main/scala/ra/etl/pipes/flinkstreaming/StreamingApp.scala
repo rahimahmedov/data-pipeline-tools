@@ -14,7 +14,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
-import ra.etl.pipes.utils.SchemaRegJSON
+import ra.etl.pipes.utils.streams.SchemaRegJSON
 import ra.etl.pipes.utils.cli._
 
 import org.apache.flink.streaming.api.scala._

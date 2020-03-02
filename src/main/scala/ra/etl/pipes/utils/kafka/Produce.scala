@@ -16,7 +16,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 
 import ra.etl.pipes.utils.cli._
-import ra.etl.pipes.utils.SchemaRegJSON
+import ra.etl.pipes.utils.streams.SchemaRegJSON
 
 object Produce extends App {
 

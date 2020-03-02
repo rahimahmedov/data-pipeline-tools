@@ -1,0 +1,17 @@
+app {
+    id: "test-app"
+    from {
+        topic: "test"
+        cluster: "localhost:9092"
+        SRU: "http://localhost:8081"
+    }
+    to {
+         topic: "rep_test"
+         cluster: "localhost:9092"
+         SRU: "http://localhost:8081"
+    }
+    filter {
+        field: "msisdn"
+        values: "994502210436"
+    }
+}
